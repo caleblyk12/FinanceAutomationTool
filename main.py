@@ -38,7 +38,7 @@ def categorize_transactions(df): #called everytime transactions are loaded, as p
 
         for idx, row in df.iterrows(): #iterate through every row in df
             details = " ".join([
-                str(row['Ref1']) if pd.notna(row['Ref1']) else "",
+                str(row['Ref1']) if pd.notna(row['Ref1']) else "", #either convert to string form, or if na replace with empty string
                 str(row['Ref2']) if pd.notna(row['Ref2']) else "",
                 str(row['Ref3']) if pd.notna(row['Ref3']) else ""
             ]).lower().strip()
