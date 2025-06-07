@@ -100,11 +100,19 @@ def main():
                 overall_df['Debit'] > 0 #filter overall_df to include rows where inner statement is true
             ].copy() #create copy so it doesnt mutate original df
 
+            st.session_state.debits_df = debits_df.copy()
+
             credits_df = overall_df[
                 overall_df['Credit'] > 0
             ].copy()
 
+            st.session_state.credits_df = credits_df.copy()
+
             tab1, tab2 = st.tabs(["Expenses (Debits)", "Income (Credits)"])
+
+
+
+            ### EXPENSES PAGE ###
             with tab1:
                 new_category = st.text_input('New Category Name')
                 add_button = st.button('Add Category')
@@ -115,7 +123,66 @@ def main():
                         save_categories()
                         st.rerun()
 
-                st.write(debits_df)
+                st.subheader("Your expenses")
+
+                edited_df = st.data_editor(
+                    st.session_state.debits_df[["Date", "Debit", "Ref1", "Ref2", "Ref3", "Category"]], #select only these col
+
+                    #column_config changes how UI views and interacts with data, not actually changing the df underlying data types
+                    column_config={
+                        "Date": st.column_config.DateColumn("Date", format="DD/MM/YYYY"),
+                        "Debit": st.column_config.NumberColumn("Debit", format="%.2f SGD"),
+                        "Category": st.column_config.SelectboxColumn("Category", options=list(st.session_state.categories.keys())) #creates dropdown selection list from all the categories
+                    },
+                    hide_index=True,
+                    use_container_width=True,
+                    key="category_editor"
+                )
+
+                #Prepare to track keyword inputs for changed rows
+                custom_keywords = {} #temporary dict, resets on every streamlit rerun and not saved in session_state
+                st.markdown("---")
+                st.markdown("### 🔍 Review and Add Keywords")
+
+                for idx, row in edited_df.iterrows():
+                    original_cat = st.session_state.debits_df.at[idx, "Category"]
+                    new_cat = row["Category"]
+                    if new_cat != original_cat: #if cat changed for the row, add box for kw input to be typed
+                        st.markdown(f"**Row {idx + 1}**: `{row['Ref1']}` `{row['Ref2']}` `{row['Ref3']}` → Category changed to `{new_cat}`")
+
+                        kw_input = st.text_input(
+                            f"Choose a specific keyword/phrase/id to associate with `{new_cat}` for this row (must appear in ref1, 2 or 3):",
+                            key=f"kw_input_{idx}"
+                        )
+                        if kw_input.strip():
+                            custom_keywords[idx] = kw_input.strip() #Use row id as a key, new custom kw as value in the tempo dict
+
+                #Save logic with optional keyword storage
+                save_button = st.button('Apply Changes', type='primary')
+                if save_button:
+                    for idx, row in edited_df.iterrows():
+                        new_cat = row["Category"]
+                        old_cat = st.session_state.debits_df.at[idx, "Category"]
+
+                        if new_cat != old_cat:
+                            st.session_state.debits_df.at[idx, "Category"] = new_cat
+                            if idx in custom_keywords: #if row id in temp dict as a key
+                                added = add_kw_to_cat(new_cat, custom_keywords[idx]) #add value which is the kw to cat, returns true on success
+                                if added:
+                                    st.success(f"✅ Added keyword '{custom_keywords[idx]}' to category '{new_cat}'")
+                                else:
+                                    st.warning(f"⚠️ Keyword '{custom_keywords[idx]}' already exists in '{new_cat}' or was invalid.")
+                       
+
+
+                st.markdown("---")
+                st.subheader('Expenses Summary and Visualisations')
+
+                #reset_index converts the resultant pandas series into a clean dataframe with regularly numbered rows and cat as cols for visualisation
+                #without it, you get a pandas series where cat is the index and values are the summed debit vals. Harder to throw into visualisation
+                cat_totals = st.session_state.debits_df.groupby('Category')['Debit'].sum().reset_index()
+
+            ### INCOME PAGE ###
             with tab2:
                 st.write(credits_df)
 
