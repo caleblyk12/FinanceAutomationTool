@@ -7,3 +7,5 @@ currently no clean way to track and hence remove keywords from cat changes: only
 
 dbs summaries are incomprehensive, and 70% of my transactions are dumped under "others"
 wanted more control and understanding of my finances and expenses, 
+
+

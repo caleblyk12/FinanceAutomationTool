@@ -51,17 +51,44 @@ def categorize_transactions(df): #called everytime transactions are loaded, as p
 
 def load_transactions(file): #all pre-processing and cleaning here
     try:
-        df = pd.read_csv(file)
+        #dynamically remove whitespace and meta data to process csv
+        #first find index of header row, then skiprows in read_csv
+        header_identifiers = ['Transaction Date', 'Credit Amount', 'Debit Amount']
+        header_index = None
+
+        for index, line in enumerate(file):
+            decoded_line = line.decode('utf-8')
+            if all(col in decoded_line for col in header_identifiers):
+                header_index = index
+                break
+        
+        if header_index is None:
+            st.error("Could not find the column header in the uploaded file.")
+            return None
+
+        file.seek(0) #reset pointer to beginning before reading with pandas
+        df = pd.read_csv(file, skiprows=header_index)
+
+
+        #up to here is good, now need figure out logic to add extra trailing comma. Either that or 
+        #remove trailing commas from all rows before adding new col entirely
+        #option 3 is just add new category and drop the middle one? 
+
 
         #remove whitespace 
         df.columns = [col.strip() for col in df.columns]
 
-
-        #remove empty lines on top and look for header as first parse
-        #rename unnamed: 7 to category
-        #rename debit amount and credit amount and ref123
-
-
+        #rename cols, handle trailing commas in dbs statement with unnamed7 to category
+        rename_map = {
+            'Unnamed: 7': 'Category',
+            'Debit Amount': 'Debit',
+            'Credit Amount': 'Credit',
+            'Transaction Ref1': 'Ref1',
+            'Transaction Ref2': 'Ref2',
+            'Transaction Ref3': 'Ref3',
+            'Transaction Date': 'Date'
+        }
+        df.rename(columns=rename_map, inplace=True)
 
 
         #remove commas, conv to float for processing
