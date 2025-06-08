@@ -57,6 +57,13 @@ def load_transactions(file): #all pre-processing and cleaning here
         df.columns = [col.strip() for col in df.columns]
 
 
+        #remove empty lines on top and look for header as first parse
+        #rename unnamed: 7 to category
+        #rename debit amount and credit amount and ref123
+
+
+
+
         #remove commas, conv to float for processing
         df['Debit'] = pd.to_numeric(
             df['Debit'].str.replace(',', ''),  # Remove commas first
