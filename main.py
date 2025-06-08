@@ -26,7 +26,7 @@ def save_categories():
         json.dump(st.session_state.categories, f)
 
 
-def categorize_transactions(df): #called everytime transactions are loaded, as part of processing
+def categorize_transactions(df): #called everytime transactions are loaded, as part of processing to add category column
     df["Category"] = "Uncategorized" #creates/overwrites column 'category', all rows will now have a value of 'uncategorized' by default
 
     #for key, value in dict.items() where sess state . categories is a dict, keys are the cat names, values are list of keywords
@@ -49,7 +49,7 @@ def categorize_transactions(df): #called everytime transactions are loaded, as p
     return df
 
 
-def load_transactions(file):
+def load_transactions(file): #all pre-processing and cleaning here
     try:
         df = pd.read_csv(file)
 
