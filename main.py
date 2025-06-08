@@ -181,9 +181,43 @@ def main():
                 #reset_index converts the resultant pandas series into a clean dataframe with regularly numbered rows and cat as cols for visualisation
                 #without it, you get a pandas series where cat is the index and values are the summed debit vals. Harder to throw into visualisation
                 cat_totals = st.session_state.debits_df.groupby('Category')['Debit'].sum().reset_index()
+                cat_totals = cat_totals.sort_values("Debit", ascending=False)
+
+                st.dataframe(
+                    cat_totals,
+                    column_config={
+                        "Debit": st.column_config.NumberColumn("Amount", format='%.2f SGD') #rename col and formatting in presentation layer to ui only. Underlying df is still "Debit"
+                    },
+                    use_container_width=True,
+                    hide_index=True
+                )
+
+                fig1 = px.pie(
+                    cat_totals,
+                    values='Debit',
+                    names='Category',
+                    title='Expenses by Category'
+                )
+
+                fig2 = px.bar(
+                    cat_totals,
+                    y='Debit',
+                    x='Category',
+                    title='Expenses by Category'
+                )
+
+                st.plotly_chart(fig1, use_container_width=True)
+                st.plotly_chart(fig2, use_container_width=False)
+
+
+
 
             ### INCOME PAGE ###
             with tab2:
+                st.subheader('Income Summary')
+                total_income = credits_df['Credit'].sum()
+                st.metric('Total Income', f'{total_income:,.2f}, SGD')
+
                 st.write(credits_df)
 
 main()
