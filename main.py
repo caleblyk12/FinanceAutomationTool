@@ -3,6 +3,7 @@ import pandas as pd
 import plotly.express as px
 import json
 import os
+import io
 
 st.set_page_config(page_title='Finance Automation App', page_icon='💵', layout='wide')
 
@@ -48,31 +49,49 @@ def categorize_transactions(df): #called everytime transactions are loaded, as p
     
     return df
 
+#initial cleaning: remove trailing commas from data and find header line index
+def clean_file(file):
 
-def load_transactions(file): #all pre-processing and cleaning here
+    #read byte file, convert into single string with /n in one line
+    # and splitlines() converts that single line to a list of strings, and strips the /n at the end
+    decoded = file.read().decode("utf-8").splitlines()
+
+
+    header_identifiers = ['Transaction Date', 'Credit Amount', 'Debit Amount']
+    header_index = None
+
+    #dynamically look for header row index (start of data)
+    for index, line in enumerate(decoded):
+        if all(col in line for col in header_identifiers):
+            header_index = index
+            break
+
+    if header_index is None:
+        st.error("Could not find the column header in the uploaded file.")
+        return None
+
+    # Remove trailing commas only from data rows
+    cleaned_lines = []
+    for i, line in enumerate(decoded):
+        if i > header_index:
+            #stripping /n at the end is defensive coding, by right splitlines strips it before converting to list
+            cleaned_lines.append(line.rstrip(',\n'))
+        else:
+            cleaned_lines.append(line)
+
+    # Join cleaned lines and return as a file-like object, basically reversing original convertion to list of strings
+    cleaned_file = io.StringIO("\n".join(cleaned_lines))
+    return cleaned_file, header_index
+
+
+def load_transactions(file): #all pre-processing here
     try:
-        #dynamically remove whitespace and meta data to process csv
-        #first find index of header row, then skiprows in read_csv
-        header_identifiers = ['Transaction Date', 'Credit Amount', 'Debit Amount']
-        header_index = None
-
-        for index, line in enumerate(file):
-            decoded_line = line.decode('utf-8')
-            if all(col in decoded_line for col in header_identifiers):
-                header_index = index
-                break
-        
-        if header_index is None:
-            st.error("Could not find the column header in the uploaded file.")
+        cleaned_file, header_index = clean_file(file)
+        if cleaned_file is None:
             return None
-
-        file.seek(0) #reset pointer to beginning before reading with pandas
-        df = pd.read_csv(file, skiprows=header_index)
-
-
-        #up to here is good, now need figure out logic to add extra trailing comma. Either that or 
-        #remove trailing commas from all rows before adding new col entirely
-        #option 3 is just add new category and drop the middle one? 
+        
+        #skip rows prior to header
+        df = pd.read_csv(cleaned_file, skiprows=header_index)
 
 
         #remove whitespace 
